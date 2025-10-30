@@ -9,7 +9,6 @@ Hybrid retrieval: 0.3 TF-IDF + 0.7 SBERT with per-query min–max normalization;
 Explainable reranker: 14 components (6 LLM + 6 Rules + 1 Retrieval + 1 Cross-Encoder)
 Optuna tuning: TPE optimization on a curated 75-pair benchmark (objective: nDCG@10)
 
-
 2. Dataset Description
 Sources (scoped): Original raw data were positions.jsonl, candidate.jsonl, applications.csv. To keep the MVP focused and under 10k entries, we restricted the study to Accounting / Audit / Taxation roles.
 Positions: position-Accounting_ Audit_Taxation (csv) → canonicalized.
@@ -24,7 +23,7 @@ Candidates: candidate.jsonl (unchanged).
 
 Ref: folder 1.1/data_check_positions_candidates.py.
 
- Data Preprocessing Steps
+Data Preprocessing Steps
 1. Ingestion & cleaning: robust encoding (UTF-8 w/ BOM → Latin-1 fallback), HTML stripping (BeautifulSoup), special-char removal, lower-casing (preserve acronyms e.g., CPA/ACCA), date parsing and employment duration calculations.
 2. Deduplication (positions): TF-IDF over title + JD → cosine similarity; cluster at >0.95 and assign a canonical position_id per cluster (8,433 → 3,878).
 3. Ontology build: six JSON dictionaries — skills, certifications, edu_level, edu_major, languages, experience_tags — with bilingual aliases and fuzzy mapping (edit-distance + synonym tables). Top n-grams (≈5k) seeded the term lists; curated iteratively.
@@ -164,82 +163,17 @@ Ref: folder 3.4/demo_rank_top10.py;
 4.1 Feature Importance and Insights
 Optuna-learned weights (with all component scores normalized to 0,1) indicate which signals drive match quality in A/A/T.
 
-Top Features by Weight
-Rank
-Feature
-Weight
-Interpretation
-1
-all_skills_match
-4.99
-Breadth of skills is the most important factor
-2
-years_match
-4.99
-Years of experience is equally critical
-3
-nice_to_have_skill_match
-4.36
-Preferred skills are highly valued
-4
-lang_match
-3.65
-Language proficiency is important
-5
-edu_major_match
-3.46
-Relevant education major is significant
-6
-nice_to_have_cert_match
-2.66
-Preferred certifications add value
-7
-must_have_skill_match
-2.23
-Must-have skills are important
-8
-must_have_cert_match
-1.73
-Must-have certifications matter
-9
-cross_encoder_score
-1.64
-Deep semantic matching adds value
-10
-role_focus_match
-1.63
-Core job function alignment matters
-
 Reading The Weights
 Breadth of skills and appropriate years of experience dominate (both 4.99), signalling recruiters prefer versatile candidates with the right tenure. Among already-qualified profiles (thanks to retrieval), nice-to-have skills become a strong differentiator (4.36). High weight on languages (3.65) reflects HK’s EN/中文 context. Major outranking education level suggests domain fit matters more than degree seniority. Cross-encoder and role focus add semantic nuance without overpowering explicit signals.
 Caveats: Some features are correlated (e.g., all_skills vs must_have_skill). Since two top weights sit at the upper bound, widening the search range (e.g., [0, 6] or [0, 10]) is a useful robustness check. Practical importance also depends on activation frequency; consider reporting mean contribution E[wisi]on validation shortlists.
+
 4.2 Model Performance Results
 We compare the Optimized Model against a rules-only baseline.
-Model
-Retrieval Method
-Features
-Tuning Method
-nDCG@10
-Baseline
-TF-IDF
-Rules (7)
-Grid Search
-0.016
-Optimized
-Hybrid Fusion
-Hybrid (14)
-Optuna
-0.735
-Improvement
--
--
--
-45.9×
-
 The Optimized Model achieved an nDCG@10 score of 0.735, representing a more than 45-fold increase over the baseline's score of 0.016.
 
 Business Impact
 An nDCG@10 of 0.735 means recruiters receive a Top-10 that already concentrates the best matches, shifting effort from trawling 100–200 CVs to making informed interview decisions—directly reducing screening time and lifting hit rate.
+
 4.3 What Drove the Lift
 Hierarchical Features via LLM: LLM extraction separates must-have from nice-to-have skills/certs and surfaces role focus and years ranges, letting the model weight differentiators (e.g., nice-to-have skills) higher once basics are satisfied.
 Hybrid Retrieval (TF-IDF + SBERT): TF-IDF preserves hard domain terms (“Big 4”, “HKICPA”, “Consolidation”); SBERT captures semantic and bilingual variants (“Financial Reporting” ↔ “Statutory Reporting”, “會計” ↔ “Accountant”). Per-query min–max normalization and a 0.3/0.7 blend improve Recall@200 (≈0.45 → ≈0.78 on validation) versus either method alone.
