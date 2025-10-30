@@ -9,6 +9,8 @@ Hybrid retrieval: 0.3 TF-IDF + 0.7 SBERT with per-query min–max normalization;
 Explainable reranker: 14 components (6 LLM + 6 Rules + 1 Retrieval + 1 Cross-Encoder)
 Optuna tuning: TPE optimization on a curated 75-pair benchmark (objective: nDCG@10)
 
+
+
 2. Dataset Description
 Sources (scoped): Original raw data were positions.jsonl, candidate.jsonl, applications.csv. To keep the MVP focused and under 10k entries, we restricted the study to Accounting / Audit / Taxation roles.
 Positions: position-Accounting_ Audit_Taxation (csv) → canonicalized.
@@ -31,11 +33,14 @@ Data Preprocessing Steps
 4. Split: chronological 70/15/15 on application timestamps to avoid leakage and simulate deployment.
 
 Ref: folder 1.2/position_deduplication_final.py
- 
 Ref: folder 1.3/Ontology Building; folder 1.3/Ontology Building/skills.json
 
+
+
 3. Methodology
+
 Phase 1: Data Foundation and Feature Engineering
+
 This phase focuses on converting unstructured text in job descriptions and CVs into structured, comparable features. The key innovation is a hybrid feature extraction approach that combines the strengths of two complementary engines.
 
 Rules-Based Extraction Engine
@@ -89,12 +94,14 @@ languages_req: {...}
 Ref: folder 1.5/positions_FINAL_hybrid_features.parquet.
 
 Phase 2: Evaluation Framework
+
 Without explicit hire/shortlist labels, we use application records as proxy positives: if a candidate applied, it signals some degree of relevance. This signal is imperfect but pragmatic for MVPs and widely used in production HR systems.
 To avoid leakage and reflect real use, we apply a chronological split by application date: 70% train, 15% validation, and 15% test (old → new). The model is trained on history and evaluated on future data.
 We assess retrieval with Recall@K (ensuring most actual applicants appear in the Top-200) and optimize reranking with nDCG@10, a position-aware, normalized ranking metric suited to graded relevance.
 For fine-tuning, we built a small human-labeled benchmark: 5 representative positions × 15 candidates = 75 pairs, each scored 0–3 for relevance. This set serves as the Optuna objective for weight tuning.
 
 Phase 3: Core Matching Engine
+
 Stage 1: Candidate Retrieval with Hybrid Fusion
 This stage narrows the full candidate pool to a focused Top-200 per position, creating a high-recall set for reranking. A pure TF-IDF baseline was fast and precise on exact keywords, but missed semantic matches and struggled with mixed English/Chinese text. We therefore adopt a hybrid fusion that combines TF-IDF (precision on hard domain terms) with SBERT (semantic breadth and multilingual understanding), yielding materially better Recall@200 and a stronger starting slate for Stage 2.
 
@@ -160,7 +167,10 @@ Using the learned weights in best_weights_14_features.json and the per-candidate
 
 Ref: folder 3.4/demo_rank_top10.py;
 
+
+
 4. Analysis and Discussion
+   
 4.1 Feature Importance and Insights
 Optuna-learned weights (with all component scores normalized to 0,1) indicate which signals drive match quality in A/A/T.
 
