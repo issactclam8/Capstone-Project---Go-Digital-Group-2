@@ -14,6 +14,7 @@ Sources (scoped): Original raw data were positions.jsonl, candidate.jsonl, appli
 Positions: position-Accounting_ Audit_Taxation (csv) → canonicalized.
 Applications: applications-Accounting_Audit_Taxation (csv) → proxy positives.
 Candidates: candidate.jsonl (unchanged).
+
 2.1 Dataset Characteristics and Scale
 1. Scale: 8,433 original JD records → 3,878 canonical unique positions after TF-IDF dedup (cosine sim > 0.95). 32 invalid entries dropped (format/critical fields missing).
 2. Unstructured text: JD & CV content is largely free text (bilingual ZH/EN), requiring robust NLP cleaning and normalization.
